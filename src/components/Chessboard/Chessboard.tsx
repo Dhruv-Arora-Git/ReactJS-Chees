@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Tile from "../Tile/Tile";
 import "./Chessboard.css";
 
@@ -11,53 +11,52 @@ interface Piece {
   verticalPosition: number;
 }
 
-const pieces: Piece[] = [];
-
+const initialPieces: Piece[] = [];
 for (let i = 0; i < 2; i++) {
   const color = i === 0 ? "b" : "w";
   const verticalPos = i === 0 ? 7 : 0;
   // rooks
-  pieces.push({
+  initialPieces.push({
     image: `assets/images/rook_${color}.svg`,
     horizontalPosition: 0,
     verticalPosition: verticalPos,
   });
-  pieces.push({
+  initialPieces.push({
     image: `assets/images/rook_${color}.svg`,
     horizontalPosition: 7,
     verticalPosition: verticalPos,
   });
   // knights
-  pieces.push({
+  initialPieces.push({
     image: `assets/images/knight_${color}.svg`,
     horizontalPosition: 1,
     verticalPosition: verticalPos,
   });
-  pieces.push({
+  initialPieces.push({
     image: `assets/images/knight_${color}.svg`,
     horizontalPosition: 6,
     verticalPosition: verticalPos,
   });
 
   // bishops
-  pieces.push({
+  initialPieces.push({
     image: `assets/images/bishop_${color}.svg`,
     horizontalPosition: 2,
     verticalPosition: verticalPos,
   });
-  pieces.push({
+  initialPieces.push({
     image: `assets/images/bishop_${color}.svg`,
     horizontalPosition: 5,
     verticalPosition: verticalPos,
   });
   // king
-  pieces.push({
+  initialPieces.push({
     image: `assets/images/king_${color}.svg`,
     horizontalPosition: 4,
     verticalPosition: verticalPos,
   });
   // queen
-  pieces.push({
+  initialPieces.push({
     image: `assets/images/queen_${color}.svg`,
     horizontalPosition: 3,
     verticalPosition: verticalPos,
@@ -66,7 +65,7 @@ for (let i = 0; i < 2; i++) {
 
 // pawns - black
 for (let i = 0; i < 8; i++) {
-  pieces.push({
+  initialPieces.push({
     image: "assets/images/pawn_b.svg",
     horizontalPosition: i,
     verticalPosition: 6,
@@ -75,7 +74,7 @@ for (let i = 0; i < 8; i++) {
 
 // pawns - white
 for (let i = 0; i < 8; i++) {
-  pieces.push({
+  initialPieces.push({
     image: "assets/images/pawn_w.svg",
     horizontalPosition: i,
     verticalPosition: 1,
@@ -84,20 +83,26 @@ for (let i = 0; i < 8; i++) {
 
 export default function ChessBoard() {
   let board = [];
+  const [gridX, setGridX] = useState(0);
+  const [gridY, setGridY] = useState(0);
+  const [activePiece, setActivePiece] = useState<HTMLElement | null>(null);
+  const [pieces, setPieces] = useState<Piece[]>(initialPieces);
   const chessBoardRef = useRef<HTMLDivElement>(null);
-
-  let activePiece: HTMLElement | null = null;
 
   function grabPiece(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
     const element = e.target as HTMLDivElement;
-    if (element.classList.contains("chess-piece")) {
+    const chessboard = chessBoardRef.current;
+    if (element.classList.contains("chess-piece") && chessboard) {
+      setGridX(Math.floor((e.clientX - chessboard.offsetLeft) / 100));
+      setGridY(
+        Math.abs(Math.ceil((e.clientY - chessboard.offsetTop - 800) / 100))
+      );
       const x = e.clientX - 50;
       const y = e.clientY - 50;
       element.style.position = "absolute";
       element.style.left = `${x}px`;
       element.style.top = `${y}px`;
-
-      activePiece = element;
+      setActivePiece(element);
     }
   }
 
@@ -126,17 +131,30 @@ export default function ChessBoard() {
       } else {
         activePiece.style.top = `${y}px`;
       }
-
-      // activePiece.style.left =
-      //   x < minX ? `${minX}px` : x > maxX ? `${maxX}px` : `${x}`;
-      // activePiece.style.top =
-      //   y < minY ? `${minY}px` : y > maxY ? `${maxY}` : `${y}px`;
     }
   }
 
   function dropPiece(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
-    if (activePiece) {
-      activePiece = null;
+    const chessboard = chessBoardRef.current;
+
+    if (activePiece && chessboard) {
+      const x = Math.floor((e.clientX - chessboard.offsetLeft) / 100);
+      const y = Math.abs(
+        Math.ceil((e.clientY - chessboard.offsetTop - 800) / 100)
+      );
+      // console.log(x, y);
+
+      setPieces((value) => {
+        const pieces = value.map((p) => {
+          if (p.horizontalPosition === gridX && p.verticalPosition === gridY) {
+            p.horizontalPosition = x;
+            p.verticalPosition = y;
+          }
+          return p;
+        });
+        return pieces;
+      });
+      setActivePiece(null);
     }
   }
 
