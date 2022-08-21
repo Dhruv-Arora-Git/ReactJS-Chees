@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import Tile from "../Tile/Tile";
 import "./Chessboard.css";
+import Refree from "../../refree/Refree";
 
 const verticalAxis = ["1", "2", "3", "4", "5", "6", "7", "8"];
 const horizontalAxis = ["a", "b", "c", "d", "e", "f", "g", "h"];
@@ -9,33 +10,58 @@ interface Piece {
   image: string;
   horizontalPosition: number;
   verticalPosition: number;
+  type: PieceType;
+  player: PlayerType;
+}
+
+export enum PlayerType {
+  WHITE,
+  BLACK,
+}
+
+export enum PieceType {
+  PAWN,
+  BISHOP,
+  KNIGHT,
+  ROOK,
+  QUEEN,
+  KING,
 }
 
 const initialPieces: Piece[] = [];
 for (let i = 0; i < 2; i++) {
-  const color = i === 0 ? "b" : "w";
-  const verticalPos = i === 0 ? 7 : 0;
+  const player = i === 0 ? PlayerType.BLACK : PlayerType.WHITE;
+  const color = player === PlayerType.BLACK ? "b" : "w";
+  const verticalPos = player === PlayerType.BLACK ? 7 : 0;
   // rooks
   initialPieces.push({
     image: `assets/images/rook_${color}.svg`,
     horizontalPosition: 0,
     verticalPosition: verticalPos,
+    type: PieceType.ROOK,
+    player,
   });
   initialPieces.push({
     image: `assets/images/rook_${color}.svg`,
     horizontalPosition: 7,
     verticalPosition: verticalPos,
+    type: PieceType.ROOK,
+    player,
   });
   // knights
   initialPieces.push({
     image: `assets/images/knight_${color}.svg`,
     horizontalPosition: 1,
     verticalPosition: verticalPos,
+    type: PieceType.KNIGHT,
+    player,
   });
   initialPieces.push({
     image: `assets/images/knight_${color}.svg`,
     horizontalPosition: 6,
     verticalPosition: verticalPos,
+    type: PieceType.KNIGHT,
+    player,
   });
 
   // bishops
@@ -43,23 +69,31 @@ for (let i = 0; i < 2; i++) {
     image: `assets/images/bishop_${color}.svg`,
     horizontalPosition: 2,
     verticalPosition: verticalPos,
+    type: PieceType.BISHOP,
+    player,
   });
   initialPieces.push({
     image: `assets/images/bishop_${color}.svg`,
     horizontalPosition: 5,
     verticalPosition: verticalPos,
+    type: PieceType.BISHOP,
+    player,
   });
   // king
   initialPieces.push({
     image: `assets/images/king_${color}.svg`,
     horizontalPosition: 4,
     verticalPosition: verticalPos,
+    type: PieceType.KING,
+    player,
   });
   // queen
   initialPieces.push({
     image: `assets/images/queen_${color}.svg`,
     horizontalPosition: 3,
     verticalPosition: verticalPos,
+    type: PieceType.QUEEN,
+    player,
   });
 }
 
@@ -69,6 +103,8 @@ for (let i = 0; i < 8; i++) {
     image: "assets/images/pawn_b.svg",
     horizontalPosition: i,
     verticalPosition: 6,
+    type: PieceType.PAWN,
+    player: PlayerType.BLACK,
   });
 }
 
@@ -78,6 +114,8 @@ for (let i = 0; i < 8; i++) {
     image: "assets/images/pawn_w.svg",
     horizontalPosition: i,
     verticalPosition: 1,
+    type: PieceType.PAWN,
+    player: PlayerType.WHITE,
   });
 }
 
@@ -88,6 +126,8 @@ export default function ChessBoard() {
   const [activePiece, setActivePiece] = useState<HTMLElement | null>(null);
   const [pieces, setPieces] = useState<Piece[]>(initialPieces);
   const chessBoardRef = useRef<HTMLDivElement>(null);
+
+  const refree = new Refree();
 
   function grabPiece(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
     const element = e.target as HTMLDivElement;
@@ -142,13 +182,27 @@ export default function ChessBoard() {
       const y = Math.abs(
         Math.ceil((e.clientY - chessboard.offsetTop - 800) / 100)
       );
-      // console.log(x, y);
 
+      // Updates the piece's position
       setPieces((value) => {
         const pieces = value.map((p) => {
           if (p.horizontalPosition === gridX && p.verticalPosition === gridY) {
-            p.horizontalPosition = x;
-            p.verticalPosition = y;
+            const validMode = refree.isValidMove(
+              gridX,
+              gridY,
+              x,
+              y,
+              p.type,
+              p.player
+            );
+            if (validMode) {
+              p.horizontalPosition = x;
+              p.verticalPosition = y;
+            } else {
+              activePiece.style.position = "relative";
+              activePiece.style.left = "0px";
+              activePiece.style.top = "0px";
+            }
           }
           return p;
         });
